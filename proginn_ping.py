@@ -63,12 +63,14 @@ class ProginnPing(object):
         time.sleep(1)
         butten.click()
 
+        # 6. 登录成功页面跳转
         print('正在跳转页面....')
         option.get(PING_URL)
         print('当前页面:', option.current_url)
+        # 延迟操作3秒
         option.implicitly_wait(3)
 
-        # 8. ping
+        # 7. 点击ping
         option.find_element_by_xpath('//span[@data-position="bottom right"]').click()
 
         return True
