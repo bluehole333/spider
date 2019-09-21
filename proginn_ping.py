@@ -34,7 +34,13 @@ class ProginnPing(object):
             time.sleep(0.5)
 
     def ping(self):
-        option = webdriver.Firefox()
+        firefox_options = webdriver.FirefoxOptions()
+        firefox_options.add_argument("--headless")  # 设置火狐为headless无界面模式
+        firefox_options.add_argument("--disable-gpu")
+        firefox_options.add_argument('--no-sandbox')
+        firefox_options.add_argument('--start-maximized')
+
+        option = webdriver.Firefox(firefox_options=firefox_options)
         option.maximize_window()
         option.get(LOGIN_URL)
         option.implicitly_wait(3)
@@ -71,7 +77,7 @@ class ProginnPing(object):
         option.implicitly_wait(3)
 
         # 7. 点击ping
-        option.find_element_by_xpath('//span[@data-position="bottom right"]').click()
+        # option.find_element_by_xpath('//span[@data-position="bottom right"]').click()
 
         return True
 
