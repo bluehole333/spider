@@ -1,0 +1,12 @@
+version: "3"
+services:
+  app:
+    build: .
+    command: sh -c "python3 proginn_ping.py"
+    depends_on:
+      - chrome
+  chrome:
+    image: selenium/standalone-chrome:latest
+    ports:
+      - "4444:4444"
+    shm_size: 2g
