@@ -7,12 +7,74 @@ Python3.6
 import os
 import yaml
 import time
+import requests
+import memcache
 
 from selenium import webdriver
+from bs4 import BeautifulSoup
+from requests.exceptions import *
 from selenium.webdriver.common.proxy import Proxy, ProxyType
 
 LOGIN_URL = 'https://www.proginn.com'
 PING_URL = 'https://www.proginn.com/wo/work_todo'
+
+
+class ProxySpider(object):
+    def __init__(self):
+        """
+        初始化cache
+        """
+        self.cache_key = "PROXYSPIDER"
+        self.cache = memcache.Client(['127.0.0.1:11211'], debug=True)
+        self.hash_cache = True if self.cache.get_stats() else False
+
+    def test_proxy(self, proxy):
+        proxies = {
+            "http": "http://%(ip)s:%(port)s" % proxy,
+        }
+        if 'HTTPS' in proxy['proxy_type']:
+            proxies.update({
+                "https": "https://%(ip)s:%(port)s" % proxy,
+            })
+
+        # 请求百度测试代理是否有效
+        try:
+            if requests.get("http://baidu.com", proxies=proxies, timeout=3).status_code == 200:
+                return True
+        except (ConnectTimeout, ProxyError, ReadTimeout) as e:
+            return False
+
+    def spider_proxy_ip(self):
+        print("爬取代理网站...")
+        proxy = []
+        session = requests.Session()
+        session.headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
+            'Host': 'www.kxdaili.com',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'Connection': 'keep-alive'
+        }
+        html = session.get("http://www.kxdaili.com/dailiip/1/1.html").text
+        soup = BeautifulSoup(html, 'lxml')
+        for table_tr in soup.find_all('tr'):
+            if not table_tr.find_all('td'): continue
+            proxy_item = {
+                'ip': table_tr.find_all('td')[0].text,
+                'port': table_tr.find_all('td')[1].text,
+                'proxy_type': table_tr.find_all('td')[3].text,
+            }
+            if not self.test_proxy(proxy_item): continue
+            proxy.append(proxy_item)
+
+        if self.hash_cache:
+            self.cache.set(self.cache_key, proxy, 3600 * 24)
+
+        print("共爬取%s有效代理..." % len(proxy))
+        return proxy
+
+    @property
+    def proxy(self):
+        return self.cache.get(self.cache_key, self.spider_proxy_ip()) if self.hash_cache else self.spider_proxy_ip()
 
 
 class ProginnPing(object):
@@ -29,6 +91,14 @@ class ProginnPing(object):
             ele.send_keys(item)
             time.sleep(0.5)
 
+    def get_proxy(self):
+        proxy = Proxy()
+        proxy.proxy_type = ProxyType.MANUAL
+        proxy.http_proxy = "47.110.130.152:8080"
+        proxy.ssl_proxy = "47.110.130.152:8080"
+
+        return proxy
+
     def ping(self):
         print("开始....")
 
@@ -39,12 +109,7 @@ class ProginnPing(object):
         # )
 
         firefox_options = webdriver.FirefoxOptions()
-
-        proxy = Proxy()
-        proxy.proxy_type = ProxyType.MANUAL
-        proxy.http_proxy = "47.110.130.152:8080"
-        # prox.socks_proxy = "47.110.130.152:8080"
-        proxy.ssl_proxy = "47.110.130.152:8080"
+        proxy = self.get_proxy()
         desired_capabilities = webdriver.DesiredCapabilities.FIREFOX
         proxy.add_to_capabilities(desired_capabilities)
 
@@ -114,7 +179,8 @@ def go():
         print(error)
         return False
 
-    ProginnPing(str(user_info['username']), str(user_info['password'])).ping()
+    # ProginnPing(str(user_info['username']), str(user_info['password'])).ping()
+    print(ProxySpider().proxy)
     return True
 
 
