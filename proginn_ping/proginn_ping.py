@@ -74,7 +74,7 @@ class ProxySpider(object):
 
     @property
     def proxy(self):
-        return self.cache.get(self.cache_key, self.spider_proxy_ip()) if self.hash_cache else self.spider_proxy_ip()
+        return self.cache.get(self.cache_key) or self.spider_proxy_ip() if self.hash_cache else self.spider_proxy_ip()
 
 
 class ProginnPing(object):
@@ -92,16 +92,17 @@ class ProginnPing(object):
             time.sleep(0.5)
 
     def get_proxy(self):
+        proxy_spider_dict = ProxySpider().proxy[0]
         proxy = Proxy()
         proxy.proxy_type = ProxyType.MANUAL
-        proxy.http_proxy = "47.110.130.152:8080"
-        proxy.ssl_proxy = "47.110.130.152:8080"
+        proxy.http_proxy = "%(ip)s:%(port)s" % proxy_spider_dict
+        if 'HTTPS' in proxy_spider_dict.get('proxy_type'):
+            proxy.ssl_proxy = "%(ip)s:%(port)s" % proxy_spider_dict
 
+        print("使用代理", proxy_spider_dict)
         return proxy
 
     def ping(self):
-        print("开始....")
-
         # 使用docker远程调用
         # option = webdriver.Remote(
         #     command_executor="http://chrome:4444/wd/hub",
@@ -113,6 +114,7 @@ class ProginnPing(object):
         desired_capabilities = webdriver.DesiredCapabilities.FIREFOX
         proxy.add_to_capabilities(desired_capabilities)
 
+        print("开始进行ping....")
         # 设置火狐为headless无界面模式
         firefox_options.add_argument("--headless")
         firefox_options.add_argument('--no-sandbox')
@@ -179,8 +181,7 @@ def go():
         print(error)
         return False
 
-    # ProginnPing(str(user_info['username']), str(user_info['password'])).ping()
-    print(ProxySpider().proxy)
+    ProginnPing(str(user_info['username']), str(user_info['password'])).ping()
     return True
 
 
