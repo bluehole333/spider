@@ -24,7 +24,7 @@ class ProxySpider(object):
         """
         初始化cache
         """
-        self.cache_key = "PROXYSPIDER"
+        self.cache_key = "PROXYSPIDERX"
         self.cache = memcache.Client(['127.0.0.1:11211'], debug=True)
         self.hash_cache = True if self.cache.get_stats() else False
 
@@ -37,9 +37,9 @@ class ProxySpider(object):
                 "https": "https://%(ip)s:%(port)s" % proxy,
             })
 
-        # 请求百度测试代理是否有效
+        # 请求官网首页测试代理是否有效
         try:
-            if requests.get("http://baidu.com", proxies=proxies, timeout=3).status_code == 200:
+            if requests.get(LOGIN_URL, proxies=proxies, timeout=3).status_code == 200:
                 return True
         except (ConnectTimeout, ProxyError, ReadTimeout) as e:
             return False
@@ -74,7 +74,9 @@ class ProxySpider(object):
 
     @property
     def proxy(self):
-        return self.cache.get(self.cache_key) or self.spider_proxy_ip() if self.hash_cache else self.spider_proxy_ip()
+        proxys = self.cache.get(
+            self.cache_key) or self.spider_proxy_ip() if self.hash_cache else self.spider_proxy_ip()
+        return proxys
 
 
 class ProginnPing(object):
@@ -114,7 +116,7 @@ class ProginnPing(object):
         desired_capabilities = webdriver.DesiredCapabilities.FIREFOX
         proxy.add_to_capabilities(desired_capabilities)
 
-        print("开始进行ping....")
+        print("开始...")
         # 设置火狐为headless无界面模式
         firefox_options.add_argument("--headless")
         firefox_options.add_argument('--no-sandbox')
